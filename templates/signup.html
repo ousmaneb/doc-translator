@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Create Account — DocTranslator{% endblock %}
+{% block content %}
+<div class="min-h-screen flex items-center justify-center bg-slate-50 px-4 py-12">
+  <div class="w-full max-w-sm">
+
+    <div class="flex flex-col items-center mb-8">
+      <div class="w-11 h-11 bg-gradient-to-br from-indigo-600 to-violet-600 rounded-xl flex items-center justify-center shadow-lg mb-4">
+        <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+        </svg>
+      </div>
+      <h1 class="text-2xl font-bold text-slate-900">Create account</h1>
+      <p class="text-sm text-slate-500 mt-1">Start translating documents for free</p>
+    </div>
+
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8">
+      <form action="/auth/signup" method="post" class="space-y-5">
+        <div>
+          <label class="block text-sm font-semibold text-slate-700 mb-1.5">Email</label>
+          <input type="email" name="email" value="{{ email or '' }}" required autocomplete="email"
+            class="w-full px-4 py-3 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all placeholder:text-slate-400"
+            placeholder="you@example.com" />
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-700 mb-1.5">Password</label>
+          <input type="password" name="password" required autocomplete="new-password"
+            class="w-full px-4 py-3 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all placeholder:text-slate-400"
+            placeholder="At least 6 characters" />
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-slate-700 mb-1.5">Confirm password</label>
+          <input type="password" name="confirm" required autocomplete="new-password" id="confirm-pw"
+            class="w-full px-4 py-3 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all placeholder:text-slate-400"
+            placeholder="Repeat your password" />
+        </div>
+
+        {% if error %}
+        <div class="flex items-center gap-2.5 p-3 bg-red-50 border border-red-100 rounded-xl">
+          <svg class="w-4 h-4 text-red-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          <p class="text-sm text-red-600">{{ error }}</p>
+        </div>
+        {% endif %}
+        <div id="signup-error" class="hidden flex items-center gap-2.5 p-3 bg-red-50 border border-red-100 rounded-xl">
+          <svg class="w-4 h-4 text-red-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          <p class="text-sm text-red-600" id="signup-error-msg"></p>
+        </div>
+
+        <button type="submit" class="w-full py-3 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-500 transition-all shadow-sm">
+          Create account
+        </button>
+      </form>
+    </div>
+
+    <p class="text-center text-sm text-slate-500 mt-6">
+      Already have an account?
+      <a href="/login" class="text-indigo-600 font-semibold hover:text-indigo-500 transition-colors">Sign in</a>
+    </p>
+  </div>
+</div>
+<script>
+  document.querySelector('form').addEventListener('submit', function(e) {
+    const pw = this.querySelector('[name=password]').value;
+    const confirm = document.getElementById('confirm-pw').value;
+    if (pw !== confirm) {
+      e.preventDefault();
+      const errDiv = document.getElementById('signup-error');
+      document.getElementById('signup-error-msg').textContent = 'Passwords do not match';
+      errDiv.classList.remove('hidden');
+    }
+  });
+</script>
+{% endblock %}

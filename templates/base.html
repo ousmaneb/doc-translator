@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}DocTranslator{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/static/css/globals.css" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: { slate: { 950: '#020617' } }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-white text-slate-900 antialiased">
+
+<!-- ── Header ──────────────────────────────────────────────────────────── -->
+<header class="sticky top-0 z-50 glass border-b border-slate-200/60 shadow-sm">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex items-center justify-between h-16">
+
+      <!-- Logo -->
+      <a href="/" class="flex items-center gap-2.5 group">
+        <div class="w-8 h-8 bg-gradient-to-br from-indigo-600 to-violet-600 rounded-lg flex items-center justify-center shadow-md">
+          <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+          </svg>
+        </div>
+        <span class="text-lg font-bold text-slate-900 tracking-tight">DocTranslator</span>
+      </a>
+
+      <!-- Desktop nav -->
+      <nav class="hidden md:flex items-center gap-1">
+        <a href="/" class="px-4 py-2 rounded-lg text-sm font-medium {% if request.url.path == '/' %}bg-indigo-50 text-indigo-700{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-100{% endif %} transition-colors">Home</a>
+        <a href="/about" class="px-4 py-2 rounded-lg text-sm font-medium {% if request.url.path == '/about' %}bg-indigo-50 text-indigo-700{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-100{% endif %} transition-colors">About</a>
+        {% if user %}
+        <a href="/dashboard" class="px-4 py-2 rounded-lg text-sm font-medium {% if request.url.path == '/dashboard' %}bg-indigo-50 text-indigo-700{% else %}text-slate-600 hover:text-slate-900 hover:bg-slate-100{% endif %} transition-colors">Dashboard</a>
+        {% endif %}
+      </nav>
+
+      <!-- Desktop auth -->
+      <div class="hidden md:flex items-center gap-3">
+        {% if user %}
+          <span class="text-sm text-slate-500 truncate max-w-[160px]">{{ user.email }}</span>
+          <form action="/auth/logout" method="post">
+            <button type="submit" class="px-4 py-2 text-sm font-semibold text-slate-700 border border-slate-200 rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-all">Sign Out</button>
+          </form>
+        {% else %}
+          <a href="/login" class="px-4 py-2 text-sm font-semibold text-slate-700 hover:text-indigo-600 transition-colors">Sign In</a>
+          <a href="/signup" class="px-4 py-2 text-sm font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors shadow-sm">Get Started</a>
+        {% endif %}
+      </div>
+
+      <!-- Mobile hamburger -->
+      <button id="hamburger" type="button" class="md:hidden flex items-center justify-center w-11 h-11 rounded-xl text-slate-600 hover:bg-slate-100 transition-colors" style="touch-action:manipulation" aria-label="Toggle menu">
+        <svg id="ham-open" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+        <svg id="ham-close" class="w-6 h-6 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Mobile menu -->
+  <div id="mobile-menu" class="hidden md:hidden border-t border-slate-200/60 bg-white px-4 py-3 space-y-1 animate-fade-in">
+    <a href="/" class="flex items-center min-h-[44px] px-4 rounded-xl text-sm font-medium text-slate-700 active:bg-slate-100 transition-colors">Home</a>
+    <a href="/about" class="flex items-center min-h-[44px] px-4 rounded-xl text-sm font-medium text-slate-700 active:bg-slate-100 transition-colors">About</a>
+    {% if user %}
+    <a href="/dashboard" class="flex items-center min-h-[44px] px-4 rounded-xl text-sm font-medium text-slate-700 active:bg-slate-100 transition-colors">Dashboard</a>
+    {% endif %}
+    <div class="pt-2 border-t border-slate-100 space-y-2 mt-2">
+      {% if user %}
+        <p class="px-4 py-2 text-xs text-slate-400 truncate">{{ user.email }}</p>
+        <form action="/auth/logout" method="post">
+          <button type="submit" style="touch-action:manipulation" class="w-full flex items-center min-h-[44px] px-4 text-sm font-semibold text-slate-700 border border-slate-200 rounded-xl active:bg-slate-50 transition-colors">Sign Out</button>
+        </form>
+      {% else %}
+        <a href="/login" class="flex items-center min-h-[44px] px-4 text-sm font-semibold text-slate-700 rounded-xl active:bg-slate-50 transition-colors">Sign In</a>
+        <a href="/signup" class="flex items-center justify-center min-h-[44px] px-4 text-sm font-semibold text-white bg-indigo-600 rounded-xl active:bg-indigo-700 transition-colors">Get Started</a>
+      {% endif %}
+    </div>
+  </div>
+</header>
+
+<!-- ── Page content ──────────────────────────────────────────────────────── -->
+<main>{% block content %}{% endblock %}</main>
+
+<!-- ── Footer ───────────────────────────────────────────────────────────── -->
+<footer class="border-t border-slate-100 bg-white py-12 mt-auto">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-2.5">
+        <div class="w-7 h-7 bg-gradient-to-br from-indigo-600 to-violet-600 rounded-lg flex items-center justify-center">
+          <svg class="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+          </svg>
+        </div>
+        <span class="text-sm font-bold text-slate-900">DocTranslator</span>
+      </div>
+      <p class="text-xs text-slate-400">AI-powered English ↔ French document translation</p>
+      <nav class="flex items-center gap-4">
+        <a href="/" class="text-xs text-slate-400 hover:text-slate-600 transition-colors">Home</a>
+        <a href="/about" class="text-xs text-slate-400 hover:text-slate-600 transition-colors">About</a>
+        <a href="/dashboard" class="text-xs text-slate-400 hover:text-slate-600 transition-colors">Dashboard</a>
+      </nav>
+    </div>
+  </div>
+</footer>
+
+<script src="/static/js/app.js"></script>
+<script>
+  // Hamburger toggle
+  const hamburger = document.getElementById('hamburger');
+  const mobileMenu = document.getElementById('mobile-menu');
+  const hamOpen = document.getElementById('ham-open');
+  const hamClose = document.getElementById('ham-close');
+  hamburger?.addEventListener('click', () => {
+    const open = mobileMenu.classList.toggle('hidden');
+    hamOpen.classList.toggle('hidden', !open);
+    hamClose.classList.toggle('hidden', open);
+  });
+</script>
+</body>
+</html>

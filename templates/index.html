@@ -1,0 +1,291 @@
+{% extends "base.html" %}
+{% block title %}DocTranslator — AI-Powered Document Translation{% endblock %}
+{% block content %}
+
+<!-- ── Hero ──────────────────────────────────────────────────────────────── -->
+<section class="relative overflow-hidden bg-slate-950 pb-14 pt-12 sm:pb-20 sm:pt-16 lg:pb-24 lg:pt-20">
+  <div class="absolute inset-0 bg-dot-grid opacity-[0.04]"></div>
+  <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] sm:w-[800px] h-[300px] sm:h-[400px] bg-indigo-600/10 rounded-full blur-3xl"></div>
+
+  <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+
+      <!-- Left copy -->
+      <div class="animate-fade-up">
+        <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-semibold tracking-wide mb-5">
+          <span class="w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
+          AI-Powered Document Translation
+        </span>
+
+        <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-[1.1] tracking-tight mb-5">
+          Translate any<br />document,
+          <span class="text-gradient">instantly</span>
+        </h1>
+
+        <p class="text-base sm:text-lg text-slate-400 leading-relaxed mb-8 max-w-lg">
+          Upload a PDF, Word doc, or image. Our AI detects the language, extracts the text — even from scans — and delivers a translated file in seconds.
+        </p>
+
+        {% if not user %}
+        <div class="flex flex-col sm:flex-row gap-3">
+          <a href="/signup" class="inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-500 transition-colors shadow-lg shadow-indigo-600/25">
+            Get started free
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+          </a>
+          <a href="/login" class="inline-flex items-center justify-center px-6 py-3.5 border border-slate-700 text-slate-300 text-sm font-semibold rounded-xl hover:border-slate-600 hover:text-white transition-colors">
+            Sign in
+          </a>
+        </div>
+        {% else %}
+        <label for="file-upload-input" class="inline-flex items-center gap-2 px-6 py-3.5 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-500 transition-colors shadow-lg shadow-indigo-600/25 cursor-pointer" style="touch-action:manipulation">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+          Upload a document
+        </label>
+        {% endif %}
+
+        <div class="flex flex-wrap gap-6 sm:gap-8 mt-10 pt-10 border-t border-slate-800">
+          <div><p class="text-xl sm:text-2xl font-bold text-white">500K</p><p class="text-xs text-slate-500 mt-0.5">chars/mo free</p></div>
+          <div><p class="text-xl sm:text-2xl font-bold text-white">2</p><p class="text-xs text-slate-500 mt-0.5">languages</p></div>
+          <div><p class="text-xl sm:text-2xl font-bold text-white">4</p><p class="text-xs text-slate-500 mt-0.5">file formats</p></div>
+        </div>
+      </div>
+
+      <!-- Right — Upload card -->
+      <div class="animate-fade-up animation-delay-200">
+        <div class="rounded-2xl border border-slate-800 bg-slate-900/60 backdrop-blur-xl shadow-2xl overflow-hidden">
+          <div class="flex items-center gap-2 px-4 sm:px-5 py-3 sm:py-4 border-b border-slate-800">
+            <span class="w-3 h-3 rounded-full bg-rose-500/80"></span>
+            <span class="w-3 h-3 rounded-full bg-amber-500/80"></span>
+            <span class="w-3 h-3 rounded-full bg-emerald-500/80"></span>
+            <span class="ml-2 text-xs text-slate-500 font-mono truncate">docstranslator — translate</span>
+          </div>
+
+          <div class="p-4 sm:p-6 space-y-4 sm:space-y-5">
+            {% if user %}
+            <!-- Drop zone -->
+            <label for="file-upload-input" id="drop-zone"
+              class="relative flex flex-col items-center justify-center gap-3 h-40 sm:h-44 rounded-xl border-2 border-dashed border-slate-700 hover:border-slate-600 hover:bg-slate-800/50 cursor-pointer transition-all"
+              style="touch-action:manipulation">
+              <input id="file-upload-input" type="file" accept=".pdf,.docx,.png,.jpg,.jpeg" class="sr-only" />
+
+              <div id="drop-zone-empty">
+                <svg class="w-9 h-9 sm:w-10 sm:h-10 text-slate-500 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+                <div class="text-center px-4">
+                  <p class="text-sm font-medium text-slate-300">Tap to select or <span class="text-indigo-400">browse</span></p>
+                  <p class="text-xs text-slate-600 mt-1">PDF, DOCX, PNG, JPG</p>
+                </div>
+              </div>
+
+              <div id="drop-zone-selected" class="hidden text-center px-4">
+                <svg class="w-9 h-9 sm:w-10 sm:h-10 text-indigo-400 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <p class="text-sm font-semibold text-white truncate max-w-[200px] sm:max-w-[240px]" id="selected-filename"></p>
+                <p class="text-xs text-slate-500 mt-1" id="selected-filesize"></p>
+              </div>
+            </label>
+
+            <!-- Output format -->
+            <div class="space-y-2">
+              <p class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Output format</p>
+              <div class="grid grid-cols-2 gap-2">
+                <button type="button" data-fmt="pdf" onclick="setFormat('pdf')"
+                  class="fmt-btn flex items-center justify-center gap-2 py-3 rounded-xl border border-indigo-500 bg-indigo-500/10 text-indigo-300 text-xs font-semibold transition-all">
+                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>
+                  PDF Document
+                </button>
+                <button type="button" data-fmt="docx" onclick="setFormat('docx')"
+                  class="fmt-btn flex items-center justify-center gap-2 py-3 rounded-xl border border-slate-700 text-slate-400 hover:border-slate-600 hover:text-slate-300 text-xs font-semibold transition-all">
+                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>
+                  Word Document
+                </button>
+              </div>
+            </div>
+
+            <!-- Translate button -->
+            <button id="translate-btn" onclick="handleTranslate()" disabled
+              class="w-full py-3.5 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-lg shadow-indigo-600/20">
+              Translate now →
+            </button>
+
+            <!-- Progress -->
+            <div id="progress-area" class="hidden space-y-2">
+              <div class="flex items-center gap-2">
+                <svg class="animate-spin w-4 h-4 text-indigo-400 shrink-0" viewBox="0 0 24 24" fill="none">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                </svg>
+                <span class="text-sm text-slate-300" id="progress-text">Processing…</span>
+              </div>
+              <div class="w-full bg-slate-800 rounded-full h-1.5">
+                <div id="progress-bar" class="h-1.5 rounded-full bg-indigo-500 transition-all duration-500" style="width:20%"></div>
+              </div>
+            </div>
+
+            <!-- Error -->
+            <div id="upload-error" class="hidden flex items-start gap-3 p-3 bg-red-500/10 border border-red-500/20 rounded-xl">
+              <svg class="w-4 h-4 text-red-400 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+              <p class="text-sm text-red-300 break-words" id="upload-error-msg"></p>
+            </div>
+
+            {% else %}
+            <div class="flex flex-col items-center justify-center gap-4 h-52 text-center px-4">
+              <div class="w-14 h-14 rounded-2xl bg-indigo-500/10 flex items-center justify-center">
+                <svg class="w-7 h-7 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/></svg>
+              </div>
+              <div>
+                <p class="text-white font-semibold mb-1">Sign in to translate</p>
+                <p class="text-sm text-slate-500">Create a free account to get started</p>
+              </div>
+              <a href="/signup" class="px-5 py-3 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-500 transition-colors">Get started free →</a>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Results (hidden until translation completes) ─────────────────────── -->
+<section id="results-section" class="hidden py-16 sm:py-24 bg-white">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mb-8 sm:mb-12">
+      <div>
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-700 text-xs font-semibold mb-2 sm:mb-3">
+          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          Translation complete
+        </div>
+        <h2 class="text-2xl sm:text-3xl font-bold text-slate-900">
+          <span id="result-source-lang"></span>
+          <span class="mx-2 sm:mx-3 text-slate-300">→</span>
+          <span id="result-target-lang"></span>
+        </h2>
+      </div>
+      <button onclick="resetTranslation()" class="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors shrink-0">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        Translate another
+      </button>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
+      <!-- Original -->
+      <div class="rounded-2xl border border-slate-200 overflow-hidden">
+        <div class="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-slate-100 bg-slate-50">
+          <div class="flex items-center gap-2 min-w-0">
+            <svg class="w-4 h-4 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>
+            <span class="text-sm font-semibold text-slate-700 truncate" id="original-label">Original</span>
+          </div>
+          <a id="original-download" href="#" download class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-600 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors shrink-0 ml-2">
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+            Download
+          </a>
+        </div>
+        <div class="p-4 sm:p-6" id="original-preview-container">
+          <p class="text-sm text-slate-400 italic py-4">Original file</p>
+        </div>
+      </div>
+
+      <!-- Translated -->
+      <div class="rounded-2xl border border-emerald-100 overflow-hidden">
+        <div class="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-emerald-50 bg-emerald-50/50">
+          <div class="flex items-center gap-2 min-w-0">
+            <svg class="w-4 h-4 text-emerald-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span class="text-sm font-semibold text-slate-700 truncate" id="translated-label">Translated</span>
+          </div>
+          <a id="translated-download" href="#" download class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors shrink-0 ml-2">
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+            Download
+          </a>
+        </div>
+        <div class="p-4 sm:p-6 space-y-4" id="translated-preview-container">
+          <div id="translated-pdf-preview"></div>
+          <div id="translated-text-preview" class="hidden rounded-xl bg-slate-50 border border-slate-100 p-4 max-h-64 overflow-y-auto">
+            <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-3">Preview</p>
+            <p class="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed" id="translated-text-content"></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Features ───────────────────────────────────────────────────────────── -->
+<section class="py-16 sm:py-24 bg-white">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-10 sm:mb-16">
+      <h2 class="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 mb-3 sm:mb-4">Everything you need</h2>
+      <p class="text-base sm:text-lg text-slate-500 max-w-xl mx-auto">A complete translation pipeline from upload to download.</p>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+      {% for feat in [
+        {'icon': 'globe', 'color': 'text-indigo-600', 'bg': 'bg-indigo-50', 'title': 'DeepL Translation', 'desc': 'Industry-leading quality for English ↔ French with automatic language detection.'},
+        {'icon': 'doc', 'color': 'text-violet-600', 'bg': 'bg-violet-50', 'title': 'All Major Formats', 'desc': 'Upload PDF, Word (DOCX), PNG, or JPG — receive back a properly formatted translated file.'},
+        {'icon': 'bolt', 'color': 'text-amber-600', 'bg': 'bg-amber-50', 'title': 'OCR for Scanned Docs', 'desc': 'Tesseract extracts text from scanned images and photographs — no cloud needed.'},
+        {'icon': 'shield', 'color': 'text-emerald-600', 'bg': 'bg-emerald-50', 'title': 'Secure & Private', 'desc': 'Your files are stored only on your server. No third-party cloud storage.'},
+      ] %}
+      <div class="group p-5 sm:p-6 rounded-2xl border border-slate-100 hover:border-slate-200 hover:shadow-lg transition-all duration-300">
+        <div class="w-11 h-11 {{ feat.bg }} rounded-xl flex items-center justify-center mb-4 sm:mb-5">
+          <svg class="w-5 h-5 {{ feat.color }}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            {% if feat.icon == 'globe' %}<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/>
+            {% elif feat.icon == 'doc' %}<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/>
+            {% elif feat.icon == 'bolt' %}<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"/>
+            {% else %}<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/>
+            {% endif %}
+          </svg>
+        </div>
+        <h3 class="text-base font-bold text-slate-900 mb-2">{{ feat.title }}</h3>
+        <p class="text-sm text-slate-500 leading-relaxed">{{ feat.desc }}</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- ── How it works ───────────────────────────────────────────────────────── -->
+<section class="py-16 sm:py-24 bg-slate-50">
+  <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-10 sm:mb-16">
+      <h2 class="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-900 mb-3 sm:mb-4">How it works</h2>
+      <p class="text-base sm:text-lg text-slate-500">Three steps from upload to translated document</p>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-8 sm:gap-10">
+      {% for step in [
+        {'num': '01', 'title': 'Upload your document', 'desc': 'Tap to select or drag & drop a PDF, DOCX, PNG, or JPG file.'},
+        {'num': '02', 'title': 'Automatic processing', 'desc': 'Language is detected. OCR runs on images. DeepL translates the full text.'},
+        {'num': '03', 'title': 'Download the result', 'desc': 'Preview both versions side by side and download the translated file.'},
+      ] %}
+      <div class="flex flex-col items-center text-center">
+        <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-white border-2 border-slate-100 shadow-sm flex items-center justify-center mb-5 sm:mb-6">
+          <span class="text-xl sm:text-2xl font-bold text-gradient">{{ step.num }}</span>
+        </div>
+        <h3 class="text-base sm:text-lg font-bold text-slate-900 mb-2">{{ step.title }}</h3>
+        <p class="text-sm text-slate-500 leading-relaxed max-w-xs">{{ step.desc }}</p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- ── CTA ───────────────────────────────────────────────────────────────── -->
+<section class="py-16 sm:py-24 bg-white">
+  <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+    <div class="rounded-3xl bg-gradient-to-br from-indigo-600 to-violet-700 p-8 sm:p-12 shadow-2xl shadow-indigo-500/20">
+      <h2 class="text-2xl sm:text-3xl font-bold text-white mb-3 sm:mb-4">Ready to translate?</h2>
+      <p class="text-indigo-200 mb-6 sm:mb-8 max-w-md mx-auto text-sm sm:text-base">
+        {% if user %}Upload your next document and get a professional translation in seconds.{% else %}Create a free account and start translating documents instantly.{% endif %}
+      </p>
+      {% if user %}
+      <label for="file-upload-input" class="inline-flex items-center gap-2 px-6 sm:px-8 py-3.5 sm:py-4 bg-white text-indigo-700 text-sm font-bold rounded-xl hover:bg-indigo-50 transition-colors shadow-lg cursor-pointer" style="touch-action:manipulation">
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+        Upload a document
+      </label>
+      {% else %}
+      <a href="/signup" class="inline-flex items-center gap-2 px-6 sm:px-8 py-3.5 sm:py-4 bg-white text-indigo-700 text-sm font-bold rounded-xl hover:bg-indigo-50 transition-colors shadow-lg">
+        Get started free
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+      </a>
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+{% endblock %}

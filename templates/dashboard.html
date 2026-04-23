@@ -1,0 +1,234 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — DocTranslator{% endblock %}
+{% block content %}
+<div class="min-h-screen bg-slate-50">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 space-y-6 sm:space-y-8">
+
+    <!-- Top bar -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div>
+        <p class="text-sm text-slate-500 mb-1">Welcome back,</p>
+        <h1 class="text-2xl font-bold text-slate-900">{{ user.email.split('@')[0] }}</h1>
+      </div>
+      <a href="/" class="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-500 transition-colors shadow-sm">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+        Upload document
+      </a>
+    </div>
+
+    <!-- Error placeholder -->
+    <div id="dash-error" class="hidden p-4 bg-red-50 border border-red-100 rounded-xl text-sm text-red-700"></div>
+
+    <!-- Stats grid -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {% for card in [
+        {'label': 'Total Documents', 'value': stats.totalDocuments, 'color': 'bg-indigo-600'},
+        {'label': 'Completed', 'value': stats.totalTranslations, 'color': 'bg-emerald-600'},
+        {'label': 'Pending', 'value': stats.pendingTranslations, 'color': 'bg-amber-500'},
+        {'label': 'Language Pairs', 'value': stats.languagePairs, 'color': 'bg-violet-600'},
+      ] %}
+      <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
+        <div class="flex items-center justify-between mb-4">
+          <p class="text-sm text-slate-500">{{ card.label }}</p>
+          <div class="w-9 h-9 {{ card.color }} rounded-xl flex items-center justify-center">
+            <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>
+          </div>
+        </div>
+        <p class="text-3xl font-bold text-slate-900">{{ card.value }}</p>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Main content -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+      <!-- Recent activity -->
+      <div class="lg:col-span-2 bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        <div class="flex items-center justify-between px-6 py-5 border-b border-slate-100">
+          <div>
+            <h2 class="text-base font-bold text-slate-900">Recent translations</h2>
+            <p class="text-sm text-slate-500 mt-0.5">Your last {{ recent_activity|length }} documents</p>
+          </div>
+          <a href="/" class="inline-flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-500 transition-colors">
+            Translate more
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+          </a>
+        </div>
+
+        {% if recent_activity %}
+        <div class="divide-y divide-slate-50">
+          {% for item in recent_activity %}
+          <div class="px-4 sm:px-6 py-4 hover:bg-slate-50/60 transition-colors" id="doc-row-{{ item.documentId }}">
+            <div class="flex items-start gap-3">
+              <div class="w-9 h-9 bg-indigo-50 rounded-xl flex items-center justify-center shrink-0 mt-0.5">
+                <svg class="w-4 h-4 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>
+              </div>
+              <div class="flex-1 min-w-0">
+                <!-- Top row -->
+                <div class="flex items-start justify-between gap-2">
+                  <div class="min-w-0">
+                    <p class="text-sm font-semibold text-slate-900 truncate">{{ item.filename }}</p>
+                    <p class="text-xs text-slate-400 mt-0.5">
+                      {{ item.sourceLang.upper() }} → {{ item.targetLang.upper() }}
+                      <span class="mx-1.5">·</span>
+                      {{ item.createdAt }}
+                    </p>
+                  </div>
+                  {% set status_class = 'bg-emerald-50 text-emerald-700 border-emerald-100' if item.status == 'completed' else ('bg-red-50 text-red-700 border-red-100' if item.status == 'failed' else 'bg-amber-50 text-amber-700 border-amber-100') %}
+                  {% set dot_class = 'bg-emerald-500' if item.status == 'completed' else ('bg-red-500' if item.status == 'failed' else 'bg-amber-500') %}
+                  <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border {{ status_class }} shrink-0">
+                    <span class="w-1.5 h-1.5 rounded-full {{ dot_class }}"></span>
+                    {{ item.status|capitalize }}
+                  </span>
+                </div>
+
+                <!-- Action buttons -->
+                <div class="flex flex-wrap items-center gap-2 mt-2.5">
+                  <a href="{{ item.originalUrl }}" target="_blank" rel="noreferrer"
+                    class="px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors inline-flex items-center gap-1">
+                    <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                    Original
+                  </a>
+                  {% if item.translatedUrl %}
+                  <a href="{{ item.translatedUrl }}" target="_blank" rel="noreferrer"
+                    class="px-3 py-1.5 text-xs font-medium text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors inline-flex items-center gap-1">
+                    <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                    Translated
+                  </a>
+                  {% endif %}
+                  {% if item.documentId %}
+                  <button onclick="askDelete('{{ item.documentId }}')"
+                    class="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                    title="Delete document" id="del-btn-{{ item.documentId }}">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/></svg>
+                  </button>
+                  {% endif %}
+                </div>
+
+                <!-- Delete confirmation -->
+                <div id="confirm-{{ item.documentId }}" class="hidden mt-3 flex flex-wrap items-center gap-2 sm:gap-3">
+                  <p class="text-xs text-slate-600 w-full sm:w-auto">Delete this document and its files?</p>
+                  <button onclick="doDelete('{{ item.documentId }}')"
+                    class="px-3 py-1.5 text-xs font-semibold text-white bg-red-500 rounded-lg hover:bg-red-600 transition-colors">
+                    Yes, delete
+                  </button>
+                  <button onclick="cancelDelete('{{ item.documentId }}')"
+                    class="px-3 py-1.5 text-xs font-medium text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors">
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="flex flex-col items-center justify-center py-20 px-6 text-center">
+          <div class="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center mb-4">
+            <svg class="w-7 h-7 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>
+          </div>
+          <h3 class="text-base font-semibold text-slate-900 mb-2">No translations yet</h3>
+          <p class="text-sm text-slate-500 mb-6">Upload your first document to see it here</p>
+          <a href="/" class="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-500 transition-colors">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+            Upload now
+          </a>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Sidebar -->
+      <div class="space-y-6">
+        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+          <h3 class="text-sm font-bold text-slate-900 mb-4">Quick actions</h3>
+          <div class="space-y-2">
+            <a href="/" class="flex items-center gap-3 w-full px-4 py-3 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-500 transition-colors">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+              Upload document
+            </a>
+            <a href="/about" class="flex items-center gap-3 w-full px-4 py-3 text-sm font-medium text-slate-700 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors">
+              <svg class="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg>
+              How it works
+            </a>
+          </div>
+        </div>
+
+        <div class="bg-slate-950 rounded-2xl p-6 text-white">
+          <h3 class="text-sm font-bold mb-1">Usage summary</h3>
+          <p class="text-xs text-slate-500 mb-6">Based on your account activity</p>
+          <div class="space-y-5">
+            <div>
+              <div class="flex justify-between items-center mb-2">
+                <span class="text-xs text-slate-400">Documents processed</span>
+                <span class="text-sm font-bold">{{ stats.totalDocuments }}</span>
+              </div>
+              <div class="h-1.5 bg-slate-800 rounded-full">
+                <div class="h-1.5 bg-indigo-500 rounded-full transition-all" style="width:{{ [stats.totalDocuments * 5, 100]|min }}%"></div>
+              </div>
+            </div>
+            <div>
+              <div class="flex justify-between items-center mb-2">
+                <span class="text-xs text-slate-400">Completed translations</span>
+                <span class="text-sm font-bold">{{ stats.totalTranslations }}</span>
+              </div>
+              <div class="h-1.5 bg-slate-800 rounded-full">
+                <div class="h-1.5 bg-emerald-500 rounded-full transition-all" style="width:{{ [stats.totalTranslations * 5, 100]|min }}%"></div>
+              </div>
+            </div>
+          </div>
+          <div class="mt-6 pt-6 border-t border-slate-800">
+            <div class="flex items-center gap-2 text-xs text-slate-500">
+              <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+              Translation engine active
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+          <div class="flex items-center gap-3 mb-3">
+            <div class="w-8 h-8 bg-indigo-50 rounded-lg flex items-center justify-center">
+              <svg class="w-4 h-4 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/></svg>
+            </div>
+            <div>
+              <p class="text-sm font-bold text-slate-900">DeepL Translation</p>
+              <p class="text-xs text-slate-500">500K chars/month free</p>
+            </div>
+          </div>
+          <p class="text-xs text-slate-500 leading-relaxed">
+            Add your free DeepL API key in <code class="text-indigo-600 bg-indigo-50 px-1 py-0.5 rounded">.env</code> for the highest translation quality.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function askDelete(docId) {
+  document.getElementById('confirm-' + docId)?.classList.remove('hidden');
+}
+function cancelDelete(docId) {
+  document.getElementById('confirm-' + docId)?.classList.add('hidden');
+}
+async function doDelete(docId) {
+  const btn = document.getElementById('del-btn-' + docId);
+  if (btn) btn.disabled = true;
+  document.getElementById('confirm-' + docId)?.classList.add('hidden');
+  try {
+    const res = await fetch('/api/documents/' + docId, { method: 'DELETE' });
+    if (res.ok) {
+      document.getElementById('doc-row-' + docId)?.remove();
+    } else {
+      const d = await res.json();
+      const err = document.getElementById('dash-error');
+      if (err) { err.textContent = d.detail || 'Delete failed'; err.classList.remove('hidden'); }
+    }
+  } catch {
+    const err = document.getElementById('dash-error');
+    if (err) { err.textContent = 'Delete failed. Please try again.'; err.classList.remove('hidden'); }
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+</script>
+{% endblock %}
