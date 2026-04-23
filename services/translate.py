@@ -2,15 +2,17 @@ import os
 import re
 import time
 
-import httpx
-
 try:
     import deepl as deepl_sdk
     DEEPL_AVAILABLE = True
 except ImportError:
     DEEPL_AVAILABLE = False
 
-SEP = "\n\n"
+try:
+    from deep_translator import GoogleTranslator
+    GOOGLE_AVAILABLE = True
+except ImportError:
+    GOOGLE_AVAILABLE = False
 
 
 def should_translate(text: str) -> bool:
@@ -50,34 +52,43 @@ def detect_language(text: str) -> str:
     return "fr" if fr > en else "en"
 
 
-def _build_batches(items: list[tuple[int, str]], max_len: int) -> list[tuple[list[int], list[str]]]:
-    batches: list[tuple[list[int], list[str]]] = []
-    cur_idx: list[int] = []
-    cur_txt: list[str] = []
-    cur_len = 0
+def _google_translate_batch(texts: list, from_lang: str, to_lang: str) -> list:
+    """Translate a list of texts using Google Translate, in chunks of 50."""
+    if not GOOGLE_AVAILABLE:
+        return texts
 
-    for idx, text in items:
-        add_len = (len(SEP) if cur_len else 0) + len(text)
-        if cur_len + add_len > max_len and cur_idx:
-            batches.append((cur_idx, cur_txt))
-            cur_idx, cur_txt, cur_len = [idx], [text], len(text)
-        else:
-            cur_idx.append(idx)
-            cur_txt.append(text)
-            cur_len += add_len
+    target = "fr" if to_lang == "fr" else "en"
+    source = from_lang  # e.g. "en" or "fr"
 
-    if cur_idx:
-        batches.append((cur_idx, cur_txt))
-    return batches
+    results = list(texts)
+    chunk_size = 50
+
+    for start in range(0, len(texts), chunk_size):
+        chunk = texts[start:start + chunk_size]
+        try:
+            translator = GoogleTranslator(source=source, target=target)
+            translated = translator.translate_batch(chunk)
+            for j, t in enumerate(translated):
+                if t:
+                    results[start + j] = t
+        except Exception:
+            # Translate one by one as fallback if batch fails
+            for j, text in enumerate(chunk):
+                try:
+                    t = GoogleTranslator(source=source, target=target).translate(text)
+                    if t:
+                        results[start + j] = t
+                    time.sleep(0.1)
+                except Exception:
+                    pass
+        if start + chunk_size < len(texts):
+            time.sleep(0.3)
+
+    return results
 
 
-def _unpack(translated: str, orig_texts: list[str]) -> list[str]:
-    parts = re.split(r"\n\s*\n", translated)
-    return [(parts[i].strip() if i < len(parts) else "") or orig_texts[i] for i in range(len(orig_texts))]
-
-
-def translate_texts(texts: list[str], from_lang: str, to_lang: str) -> list[str]:
-    """Translate a list of texts: DeepL → Apertium → MyMemory fallback."""
+def translate_texts(texts: list, from_lang: str, to_lang: str) -> list:
+    """Translate a list of texts: DeepL → Google Translate fallback."""
     if not texts:
         return []
 
@@ -88,7 +99,6 @@ def translate_texts(texts: list[str], from_lang: str, to_lang: str) -> list[str]
         return results
 
     deepl_key = os.getenv("DEEPL_API_KEY", "").strip()
-    mymemory_email = os.getenv("MYMEMORY_EMAIL", "").strip()
 
     # ── 1. DeepL ────────────────────────────────────────────────────────────
     if deepl_key and DEEPL_AVAILABLE:
@@ -102,76 +112,17 @@ def translate_texts(texts: list[str], from_lang: str, to_lang: str) -> list[str]
                 results[idx] = translated_list[k] if k < len(translated_list) else texts[idx]
             return results
         except Exception:
-            pass  # fall through
+            pass
 
-    # ── 2. Apertium ─────────────────────────────────────────────────────────
-    apertium_pair = "eng|fra" if from_lang == "en" else "fra|eng"
-    apertium_batches = _build_batches(to_translate, 4800)
-    apertium_failed: list[tuple[int, str]] = []
-
-    with httpx.Client(timeout=20.0) as client:
-        for bi, (indices, batch_texts) in enumerate(apertium_batches):
-            batch = SEP.join(batch_texts)
-            try:
-                res = client.get(
-                    "https://www.apertium.org/apy/translate",
-                    params={"q": batch, "langpair": apertium_pair},
-                )
-                if res.status_code == 200:
-                    data = res.json()
-                    if str(data.get("responseStatus")) == "200":
-                        translated_text = str(data.get("responseData", {}).get("translatedText", ""))
-                        parts = _unpack(translated_text, batch_texts)
-                        for k, idx in enumerate(indices):
-                            results[idx] = parts[k]
-                        if bi < len(apertium_batches) - 1:
-                            time.sleep(0.3)
-                        continue
-            except Exception:
-                pass
-
-            for k, idx in enumerate(indices):
-                apertium_failed.append((idx, batch_texts[k]))
-            if bi < len(apertium_batches) - 1:
-                time.sleep(0.3)
-
-    if not apertium_failed:
-        return results
-
-    # ── 3. MyMemory ──────────────────────────────────────────────────────────
-    mm_limit = (4500 if mymemory_email else 450) - 20
-    mm_batches = _build_batches(apertium_failed, mm_limit)
-
-    with httpx.Client(timeout=25.0) as client:
-        for bi, (indices, batch_texts) in enumerate(mm_batches):
-            batch = SEP.join(batch_texts)
-            delay = 3.0
-            for attempt in range(4):
-                try:
-                    params: dict = {"q": batch, "langpair": f"{from_lang}|{to_lang}"}
-                    if mymemory_email:
-                        params["de"] = mymemory_email
-                    res = client.get("https://api.mymemory.translated.net/get", params=params)
-                    if res.status_code in (429, 500, 502, 503):
-                        if attempt < 3:
-                            time.sleep(delay)
-                            delay *= 2
-                            continue
-                        break
-                    if res.status_code == 200:
-                        data = res.json()
-                        if str(data.get("responseStatus")) == "200":
-                            translated_text = data["responseData"]["translatedText"]
-                            parts = _unpack(translated_text, batch_texts)
-                            for k, idx in enumerate(indices):
-                                results[idx] = parts[k]
-                        break
-                except Exception:
-                    if attempt < 3:
-                        time.sleep(delay)
-                        delay *= 2
-
-            if bi < len(mm_batches) - 1:
-                time.sleep(0.7)
+    # ── 2. Google Translate ──────────────────────────────────────────────────
+    if GOOGLE_AVAILABLE:
+        try:
+            batch_texts = [t for _, t in to_translate]
+            translated_batch = _google_translate_batch(batch_texts, from_lang, to_lang)
+            for k, (idx, _) in enumerate(to_translate):
+                results[idx] = translated_batch[k] if k < len(translated_batch) else texts[idx]
+            return results
+        except Exception:
+            pass
 
     return results

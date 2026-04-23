@@ -466,11 +466,39 @@ def _sample_bg(img, x1: int, y1: int, x2: int, y2: int) -> tuple:
     return (r, g, b)
 
 
+_ALLOWED_SINGLES = frozenset(
+    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789&.-/"
+)
+
+
+def _is_clean_text(text: str) -> bool:
+    """
+    True if text looks like real language rather than icon/logo OCR noise.
+
+    Two checks:
+    1. No single-character token that isn't a plain letter, digit or &.-/
+       (catches @ © ® é when they appear as isolated OCR reads of logo circles)
+    2. At least 55% of characters are standard ASCII printable chars
+    """
+    if not text:
+        return False
+    for word in text.split():
+        if len(word) == 1 and word not in _ALLOWED_SINGLES:
+            return False
+    clean = sum(
+        1 for c in text
+        if c.isascii() and (c.isalpha() or c.isspace() or c in ".,!?:;-'\"()%+$€£&")
+    )
+    return (clean / len(text)) >= 0.55
+
+
 def build_image_overlay_pdf(image_buffer: bytes, blocks: list, output_path: str) -> None:
     """
     Overlay translated text onto the original image preserving layout.
-    Blanks each OCR'd text region with the sampled background colour, then
-    draws the translated text at the same position and size.
+
+    Only draws an overlay when:
+    1. Translation actually changed the text (preserves brand names, numbers, etc.)
+    2. The original block is clean Latin text (skips icon/logo OCR artifacts)
     """
     if not REPORTLAB_OK:
         raise ImportError("Install: pip install reportlab")
@@ -482,8 +510,14 @@ def build_image_overlay_pdf(image_buffer: bytes, blocks: list, output_path: str)
     iw, ih = img.size
 
     for block in blocks:
-        text = (block.get("translated") or block.get("text") or "").strip()
-        if not text:
+        original = (block.get("text") or "").strip()
+        translated = (block.get("translated") or "").strip()
+
+        # Skip if translation didn't change anything — keeps original image intact
+        if not translated or translated.lower() == original.lower():
+            continue
+        # Skip garbled OCR blocks (icon misreads mixed with real text)
+        if not _is_clean_text(original):
             continue
 
         x1 = max(0, block["left"] - 2)
@@ -497,24 +531,25 @@ def build_image_overlay_pdf(image_buffer: bytes, blocks: list, output_path: str)
         brightness = (bg[0] * 299 + bg[1] * 587 + bg[2] * 114) // 1000
         text_color = (0, 0, 0) if brightness > 128 else (255, 255, 255)
 
+        # Erase original text with background colour
         draw.rectangle([x1, y1, x2, y2], fill=bg)
 
         fs = max(8, int(bh * 0.82))
         font = _get_pil_font(fs)
 
         try:
-            tw = draw.textlength(text, font=font)
+            tw = draw.textlength(translated, font=font)
         except AttributeError:
             try:
-                tw = font.getlength(text)
+                tw = font.getlength(translated)
             except Exception:
-                tw = len(text) * fs * 0.55
+                tw = len(translated) * fs * 0.55
 
         if tw > bw and bw > 0:
             fs = max(6, int(fs * bw / tw))
             font = _get_pil_font(fs)
 
-        draw.text((x1 + 1, y1 + 1), text, fill=text_color, font=font)
+        draw.text((x1 + 1, y1 + 1), translated, fill=text_color, font=font)
 
     img_io = io.BytesIO()
     img.save(img_io, format="PNG")
