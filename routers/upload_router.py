@@ -13,9 +13,10 @@ from services.pdf_processor import (
     build_docx_from_pages,
     build_simple_pdf,
     build_simple_docx,
+    build_image_overlay_pdf,
 )
 from services.docx_processor import translate_docx_in_place
-from services.ocr import extract_text_from_image
+from services.ocr import extract_image_text_blocks
 
 router = APIRouter()
 
@@ -137,25 +138,35 @@ def upload_file(
         # ── Image / scanned document (OCR) ───────────────────────────────────
         elif ext in (".png", ".jpg", ".jpeg"):
             stage = "running OCR"
-            ocr_text = extract_text_from_image(buffer)
-            if not ocr_text.strip():
+            blocks, img_w, img_h = extract_image_text_blocks(buffer)
+            if not blocks:
                 raise ValueError("OCR found no text in the image.")
 
-            source_lang = detect_language(ocr_text)
+            all_text = " ".join(b["text"] for b in blocks)
+            source_lang = detect_language(all_text)
             target_lang = "fr" if source_lang == "en" else "en"
 
             stage = "translating"
-            translated_img = _translate_text_lines(ocr_text, source_lang, target_lang)
-            preview_text = translated_img[:800]
+            raw_texts = [b["text"] for b in blocks]
+            translated_texts = translate_texts(raw_texts, source_lang, target_lang)
+            for i, block in enumerate(blocks):
+                block["translated"] = translated_texts[i] if i < len(translated_texts) else block["text"]
+
+            preview_text = " ".join(
+                b.get("translated") or b["text"] for b in blocks[:15]
+            )[:800]
 
             stage = "building output file"
             translated_name = _unique_name(filename, out_ext)
             translated_path = UPLOADS_DIR / translated_name
 
             if output_format == "pdf":
-                build_simple_pdf(translated_img, str(translated_path))
+                build_image_overlay_pdf(buffer, blocks, str(translated_path))
             else:
-                build_simple_docx(translated_img, str(translated_path))
+                translated_plain = "\n".join(
+                    b.get("translated") or b["text"] for b in blocks
+                )
+                build_simple_docx(translated_plain, str(translated_path))
 
         else:
             raise ValueError("Unsupported file type. Please upload PDF, DOCX, PNG, or JPG.")

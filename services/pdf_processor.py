@@ -3,6 +3,7 @@ PDF processing: extract text with positions (pdfminer.six), then overlay
 translated text onto the original PDF (reportlab + pypdf).
 """
 import io
+import os
 import re
 
 try:
@@ -423,3 +424,105 @@ def build_simple_docx(text: str, output_path: str) -> None:
     for line in text.split("\n"):
         doc.add_paragraph(line)
     doc.save(output_path)
+
+
+# ── image overlay PDF ─────────────────────────────────────────────────────────
+
+def _get_pil_font(size: int):
+    from PIL import ImageFont
+    for path in [
+        "/System/Library/Fonts/Helvetica.ttc",
+        "/System/Library/Fonts/Arial Unicode.ttf",
+        "/Library/Fonts/Arial.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+    ]:
+        if os.path.exists(path):
+            try:
+                return ImageFont.truetype(path, size)
+            except Exception:
+                pass
+    try:
+        return ImageFont.load_default(size=size)
+    except TypeError:
+        return ImageFont.load_default()
+
+
+def _sample_bg(img, x1: int, y1: int, x2: int, y2: int) -> tuple:
+    iw, ih = img.size
+    samples = []
+    pad = 4
+    for sx in range(max(0, x1 - pad), min(iw, x2 + pad)):
+        for sy in [max(0, y1 - pad), min(ih - 1, y2 + pad)]:
+            samples.append(img.getpixel((sx, sy))[:3])
+    for sy in range(max(0, y1 - pad), min(ih, y2 + pad)):
+        for sx in [max(0, x1 - pad), min(iw - 1, x2 + pad)]:
+            samples.append(img.getpixel((sx, sy))[:3])
+    if not samples:
+        return (255, 255, 255)
+    r = sum(s[0] for s in samples) // len(samples)
+    g = sum(s[1] for s in samples) // len(samples)
+    b = sum(s[2] for s in samples) // len(samples)
+    return (r, g, b)
+
+
+def build_image_overlay_pdf(image_buffer: bytes, blocks: list, output_path: str) -> None:
+    """
+    Overlay translated text onto the original image preserving layout.
+    Blanks each OCR'd text region with the sampled background colour, then
+    draws the translated text at the same position and size.
+    """
+    if not REPORTLAB_OK:
+        raise ImportError("Install: pip install reportlab")
+    from PIL import Image as PilImage, ImageDraw
+    from reportlab.lib.utils import ImageReader
+
+    img = PilImage.open(io.BytesIO(image_buffer)).convert("RGB")
+    draw = ImageDraw.Draw(img)
+    iw, ih = img.size
+
+    for block in blocks:
+        text = (block.get("translated") or block.get("text") or "").strip()
+        if not text:
+            continue
+
+        x1 = max(0, block["left"] - 2)
+        y1 = max(0, block["top"] - 2)
+        x2 = min(iw, block["right"] + 2)
+        y2 = min(ih, block["bottom"] + 2)
+        bw = max(x2 - x1, 1)
+        bh = max(y2 - y1, 1)
+
+        bg = _sample_bg(img, x1, y1, x2, y2)
+        brightness = (bg[0] * 299 + bg[1] * 587 + bg[2] * 114) // 1000
+        text_color = (0, 0, 0) if brightness > 128 else (255, 255, 255)
+
+        draw.rectangle([x1, y1, x2, y2], fill=bg)
+
+        fs = max(8, int(bh * 0.82))
+        font = _get_pil_font(fs)
+
+        try:
+            tw = draw.textlength(text, font=font)
+        except AttributeError:
+            try:
+                tw = font.getlength(text)
+            except Exception:
+                tw = len(text) * fs * 0.55
+
+        if tw > bw and bw > 0:
+            fs = max(6, int(fs * bw / tw))
+            font = _get_pil_font(fs)
+
+        draw.text((x1 + 1, y1 + 1), text, fill=text_color, font=font)
+
+    img_io = io.BytesIO()
+    img.save(img_io, format="PNG")
+    img_io.seek(0)
+
+    dpi = 96.0
+    pdf_w = iw * 72.0 / dpi
+    pdf_h = ih * 72.0 / dpi
+    c = rl_canvas.Canvas(output_path, pagesize=(pdf_w, pdf_h))
+    c.drawImage(ImageReader(img_io), 0, 0, width=pdf_w, height=pdf_h)
+    c.save()
